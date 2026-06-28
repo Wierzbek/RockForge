@@ -10,10 +10,13 @@
 #include "config_manager.h"
 #include "song_data.h"
 #include "tab_renderer.h"
+#include "fretboard_view.h"
+#include "file_manager.h"
 
 enum AppMode {
     MODE_FREEPLAY = 0,
-    MODE_PRACTICE
+    MODE_PRACTICE,
+    MODE_FRETBOARD
 };
 
 #define SCREEN_WIDTH 800
@@ -116,6 +119,9 @@ int main(void) {
             }
             if (GuiButton((Rectangle){ 330, 10, 120, 30 }, "Practice Mode")) {
                 current_mode = MODE_PRACTICE;
+            }
+            if (GuiButton((Rectangle){ 460, 10, 140, 30 }, "Fretboard Explorer")) {
+                current_mode = MODE_FRETBOARD;
             }
             
             if (current_mode == MODE_FREEPLAY) {
@@ -273,22 +279,31 @@ int main(void) {
                 // Practice Mode Logic
                 
                 // Playback Controls
-                if (GuiButton((Rectangle){ 480, 10, 80, 30 }, playback_active ? "PAUSE" : "PLAY")) {
+                if (GuiButton((Rectangle){ 200, 70, 80, 30 }, playback_active ? "PAUSE" : "PLAY")) {
                     playback_active = !playback_active;
                 }
-                if (GuiButton((Rectangle){ 570, 10, 80, 30 }, "STOP")) {
+                if (GuiButton((Rectangle){ 290, 70, 80, 30 }, "STOP")) {
                     playback_active = false;
                     current_beat = -4.0f;
                     // Reset hits
                     for (auto& note : current_song.notes) note.hit_state = 0;
                 }
                 
+                // File Operations
+                if (GuiButton((Rectangle){ 390, 70, 100, 30 }, "Save Song")) {
+                    SaveSongToFile(current_song, "practice_save.txt");
+                }
+                if (GuiButton((Rectangle){ 500, 70, 100, 30 }, "Load Song")) {
+                    LoadSongFromFile(current_song, "practice_save.txt");
+                    current_beat = -4.0f;
+                }
+                
                 // Tempo Slider
                 char tempo_text[32];
                 sprintf(tempo_text, "Tempo: %d", current_song.tempo);
-                DrawText(tempo_text, 680, 15, 20, LIGHTGRAY);
+                DrawText(tempo_text, 620, 75, 20, LIGHTGRAY);
                 float tempo_f = (float)current_song.tempo;
-                GuiSlider((Rectangle){ 780, 15, 120, 20 }, "", "", &tempo_f, 60.0f, 240.0f);
+                GuiSlider((Rectangle){ 720, 75, 120, 20 }, "", "", &tempo_f, 60.0f, 240.0f);
                 current_song.tempo = (int)tempo_f;
                 
                 if (playback_active) {
@@ -314,7 +329,7 @@ int main(void) {
                 }
                 
                 // Render Sheet
-                DrawTabSheet(current_song, current_beat, (Rectangle){ 20, 70, (float)GetScreenWidth() - 250, (float)GetScreenHeight() - 80 }, font);
+                DrawTabSheet(current_song, current_beat, (Rectangle){ 20, 120, (float)GetScreenWidth() - 250, (float)GetScreenHeight() - 130 }, font);
                 
                 // Draw Count-In text if necessary
                 if (current_beat < 0.0f) {
@@ -323,6 +338,13 @@ int main(void) {
                     sprintf(count_text, "Get Ready: %d", count);
                     DrawText(count_text, GetScreenWidth() / 2 - 100, GetScreenHeight() / 2 - 50, 40, ORANGE);
                 }
+            } else if (current_mode == MODE_FRETBOARD) {
+                // Fretboard Explorer Logic
+                Rectangle bounds = { 20, 100, (float)GetScreenWidth() - 280, 300 };
+                DrawFretboard(bounds, current_song, active_midi, active_count);
+                
+                DrawText("Fretboard Explorer", 20, 60, 24, LIGHTGRAY);
+                DrawText(TextFormat("Current Scale: %s", current_song.title.c_str()), 20, 420, 20, GRAY);
             }
             
             // Draw Settings Panel on the Right
