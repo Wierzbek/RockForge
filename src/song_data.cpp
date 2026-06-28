@@ -124,6 +124,11 @@ Song GenerateDynamicScale(int root_pitch, const std::vector<int>& intervals, con
         return (string_base[a.string_idx] + a.fret) < (string_base[b.string_idx] + b.fret);
     });
     
+    // Remove duplicate pitches (same MIDI note on different strings)
+    playable_notes.erase(std::unique(playable_notes.begin(), playable_notes.end(), [&](const NoteEvent& a, const NoteEvent& b) {
+        return (string_base[a.string_idx] + a.fret) == (string_base[b.string_idx] + b.fret);
+    }), playable_notes.end());
+    
     float current_beat = start_beat;
     float note_duration = 0.5f; // Eighth notes
     

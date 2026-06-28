@@ -62,6 +62,7 @@ int main(void) {
     int scale_selection = 2; // Minor Pentatonic
     bool root_dropdown_active = false;
     bool scale_dropdown_active = false;
+    bool show_notes = false;
     
     char root_names_str[256] = "C;C#;D;Eb;E;F;F#;G;G#;A;Bb;B";
     char scale_names_str[1024] = "";
@@ -295,6 +296,7 @@ int main(void) {
                 
                 // ROW 1: Generator (y=60)
                 GuiCheckBox((Rectangle){ 20, 60, 20, 20 }, "Circle of Fifths", &is_circle_of_fifths);
+                GuiCheckBox((Rectangle){ 160, 60, 20, 20 }, "Show Notes", &show_notes);
                 
                 // ROW 2: Playback & File (y=100)
                 if (GuiButton((Rectangle){ 20, 100, 80, 30 }, playback_active ? "PAUSE" : "PLAY")) {
@@ -358,7 +360,7 @@ int main(void) {
                 }
                 
                 // Render Sheet
-                DrawTabSheet(current_song, current_beat, (Rectangle){ 20, 150, (float)GetScreenWidth() - 250, (float)GetScreenHeight() - 160 }, font);
+                DrawTabSheet(current_song, current_beat, (Rectangle){ 20, 150, (float)GetScreenWidth() - 250, (float)GetScreenHeight() - 160 }, font, show_notes);
                 
                 // Draw Count-In text if necessary
                 if (current_beat < 0.0f) {
@@ -369,7 +371,7 @@ int main(void) {
                 }
                 
                 // MUST DRAW DROPDOWNS LAST so they overlap the tab sheet
-                if (GuiButton((Rectangle){ 480, 55, 100, 30 }, "Generate")) {
+                if (GuiButton((Rectangle){ 580, 55, 100, 30 }, "Generate")) {
                     if (is_circle_of_fifths) {
                         current_song = GenerateCircleOfFifthsWorkout(scale_selection);
                     } else {
@@ -379,11 +381,11 @@ int main(void) {
                     current_beat = -4.0f;
                 }
                 
-                if (GuiDropdownBox((Rectangle){ 280, 55, 180, 30 }, scale_names_str, &scale_selection, scale_dropdown_active)) {
+                if (GuiDropdownBox((Rectangle){ 380, 55, 180, 30 }, scale_names_str, &scale_selection, scale_dropdown_active)) {
                     scale_dropdown_active = !scale_dropdown_active;
                 }
                 if (!is_circle_of_fifths) {
-                    if (GuiDropdownBox((Rectangle){ 200, 55, 60, 30 }, root_names_str, &root_selection, root_dropdown_active)) {
+                    if (GuiDropdownBox((Rectangle){ 290, 55, 60, 30 }, root_names_str, &root_selection, root_dropdown_active)) {
                         root_dropdown_active = !root_dropdown_active;
                     }
                 }

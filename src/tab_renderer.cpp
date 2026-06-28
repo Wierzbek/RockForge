@@ -1,7 +1,8 @@
 #include "tab_renderer.h"
 #include <stdio.h>
+#include <math.h>
 
-void DrawTabSheet(const Song& song, float current_beat, Rectangle bounds, Font font) {
+void DrawTabSheet(const Song& song, float current_beat, Rectangle bounds, Font font, bool show_notes) {
     // Basic constants
     float staff_spacing = 150.0f; // vertical space between staffs
     float string_spacing = 15.0f;
@@ -108,10 +109,18 @@ void DrawTabSheet(const Song& song, float current_beat, Rectangle bounds, Font f
                     DrawCircle(note_x, note_y, 14, (Color){255, 165, 0, 100}); // orange glow
                 }
                 
-                char fret_text[4];
-                sprintf(fret_text, "%d", note.fret);
-                int tw = MeasureText(fret_text, 16);
-                DrawText(fret_text, note_x - tw/2, note_y - 8, 16, c);
+                char display_text[8];
+                if (show_notes) {
+                    int string_base[] = { 40, 45, 50, 55, 59, 64 };
+                    int midi = string_base[note.string_idx] + note.fret;
+                    const char* note_names[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+                    sprintf(display_text, "%s", note_names[midi % 12]);
+                } else {
+                    sprintf(display_text, "%d", note.fret);
+                }
+                
+                int tw = MeasureText(display_text, 16);
+                DrawText(display_text, note_x - tw/2, note_y - 8, 16, c);
             }
         }
     }
