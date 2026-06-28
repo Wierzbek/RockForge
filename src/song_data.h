@@ -20,7 +20,22 @@ struct Song {
     std::vector<NoteEvent> notes;
 };
 
-// Generates a simple practice scale
+struct ScaleDefinition {
+    const char* name;
+    std::vector<int> intervals;
+};
+
+// Expose these for UI selection
+extern const std::vector<ScaleDefinition> SCALES;
+extern const char* ROOT_NAMES[];
+
+// Generates a simple practice scale (Legacy)
 Song GeneratePracticeScale(const char* scale_type);
+
+// Procedurally generates an ascending/descending tab for a given key and scale
+Song GenerateDynamicScale(int root_pitch, const std::vector<int>& intervals, const char* name, float start_beat = 0.0f);
+
+// Stitches all 12 keys together for a massive endurance track
+Song GenerateCircleOfFifthsWorkout(int scale_index);
 
 #endif // SONG_DATA_H

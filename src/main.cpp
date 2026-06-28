@@ -51,9 +51,24 @@ int main(void) {
     int device_count = AudioCapture_GetDeviceCount();
     
     AppMode current_mode = MODE_FREEPLAY;
-    Song current_song = GeneratePracticeScale("A Minor Pentatonic");
+    Song current_song = GenerateDynamicScale(9, SCALES[2].intervals, SCALES[2].name, 0.0f); // Default A Minor Pentatonic
     float current_beat = -4.0f; // 4-beat count-in
     bool playback_active = false;
+    
+    // UI State for Practice Mode
+    bool is_circle_of_fifths = false;
+    bool loop_playback = true;
+    int root_selection = 9; // A
+    int scale_selection = 2; // Minor Pentatonic
+    bool root_dropdown_active = false;
+    bool scale_dropdown_active = false;
+    
+    char root_names_str[256] = "C;C#;D;Eb;E;F;F#;G;G#;A;Bb;B";
+    char scale_names_str[1024] = "";
+    for (size_t i = 0; i < SCALES.size(); i++) {
+        strcat(scale_names_str, SCALES[i].name);
+        if (i < SCALES.size() - 1) strcat(scale_names_str, ";");
+    }
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -278,22 +293,26 @@ int main(void) {
             } else if (current_mode == MODE_PRACTICE) {
                 // Practice Mode Logic
                 
-                // Playback Controls
-                if (GuiButton((Rectangle){ 200, 70, 80, 30 }, playback_active ? "PAUSE" : "PLAY")) {
+                // ROW 1: Generator (y=60)
+                GuiCheckBox((Rectangle){ 20, 60, 20, 20 }, "Circle of Fifths", &is_circle_of_fifths);
+                
+                // ROW 2: Playback & File (y=100)
+                if (GuiButton((Rectangle){ 20, 100, 80, 30 }, playback_active ? "PAUSE" : "PLAY")) {
                     playback_active = !playback_active;
                 }
-                if (GuiButton((Rectangle){ 290, 70, 80, 30 }, "STOP")) {
+                if (GuiButton((Rectangle){ 110, 100, 80, 30 }, "STOP")) {
                     playback_active = false;
                     current_beat = -4.0f;
                     // Reset hits
                     for (auto& note : current_song.notes) note.hit_state = 0;
                 }
                 
-                // File Operations
-                if (GuiButton((Rectangle){ 390, 70, 100, 30 }, "Save Song")) {
+                GuiCheckBox((Rectangle){ 210, 100, 20, 20 }, "Loop", &loop_playback);
+                
+                if (GuiButton((Rectangle){ 300, 100, 100, 30 }, "Save Song")) {
                     SaveSongToFile(current_song, "practice_save.txt");
                 }
-                if (GuiButton((Rectangle){ 500, 70, 100, 30 }, "Load Song")) {
+                if (GuiButton((Rectangle){ 410, 100, 100, 30 }, "Load Song")) {
                     LoadSongFromFile(current_song, "practice_save.txt");
                     current_beat = -4.0f;
                 }
@@ -301,9 +320,9 @@ int main(void) {
                 // Tempo Slider
                 char tempo_text[32];
                 sprintf(tempo_text, "Tempo: %d", current_song.tempo);
-                DrawText(tempo_text, 620, 75, 20, LIGHTGRAY);
+                DrawText(tempo_text, 530, 105, 20, LIGHTGRAY);
                 float tempo_f = (float)current_song.tempo;
-                GuiSlider((Rectangle){ 720, 75, 120, 20 }, "", "", &tempo_f, 60.0f, 240.0f);
+                GuiSlider((Rectangle){ 630, 105, 120, 20 }, "", "", &tempo_f, 60.0f, 240.0f);
                 current_song.tempo = (int)tempo_f;
                 
                 if (playback_active) {
@@ -312,7 +331,11 @@ int main(void) {
                     // Hit detection logic
                     float tolerance = 0.25f; // beats
                     int string_base[] = { 40, 45, 50, 55, 59, 64 };
+                    float max_beat = 0.0f;
+                    
                     for (auto& note : current_song.notes) {
+                        if (note.beat + note.duration > max_beat) max_beat = note.beat + note.duration;
+                        
                         if (note.hit_state == 0) {
                             if (current_beat >= note.beat - tolerance && current_beat <= note.beat + tolerance) {
                                 int target_midi = string_base[note.string_idx] + note.fret;
@@ -326,10 +349,16 @@ int main(void) {
                             }
                         }
                     }
+                    
+                    // Loop Logic
+                    if (loop_playback && current_beat > max_beat + 1.0f) { // 1 beat rest at end before loop
+                        current_beat = 0.0f;
+                        for (auto& note : current_song.notes) note.hit_state = 0;
+                    }
                 }
                 
                 // Render Sheet
-                DrawTabSheet(current_song, current_beat, (Rectangle){ 20, 120, (float)GetScreenWidth() - 250, (float)GetScreenHeight() - 130 }, font);
+                DrawTabSheet(current_song, current_beat, (Rectangle){ 20, 150, (float)GetScreenWidth() - 250, (float)GetScreenHeight() - 160 }, font);
                 
                 // Draw Count-In text if necessary
                 if (current_beat < 0.0f) {
@@ -337,6 +366,26 @@ int main(void) {
                     char count_text[32];
                     sprintf(count_text, "Get Ready: %d", count);
                     DrawText(count_text, GetScreenWidth() / 2 - 100, GetScreenHeight() / 2 - 50, 40, ORANGE);
+                }
+                
+                // MUST DRAW DROPDOWNS LAST so they overlap the tab sheet
+                if (GuiButton((Rectangle){ 480, 55, 100, 30 }, "Generate")) {
+                    if (is_circle_of_fifths) {
+                        current_song = GenerateCircleOfFifthsWorkout(scale_selection);
+                    } else {
+                        current_song = GenerateDynamicScale(root_selection, SCALES[scale_selection].intervals, SCALES[scale_selection].name, 0.0f);
+                    }
+                    playback_active = false;
+                    current_beat = -4.0f;
+                }
+                
+                if (GuiDropdownBox((Rectangle){ 280, 55, 180, 30 }, scale_names_str, &scale_selection, scale_dropdown_active)) {
+                    scale_dropdown_active = !scale_dropdown_active;
+                }
+                if (!is_circle_of_fifths) {
+                    if (GuiDropdownBox((Rectangle){ 200, 55, 60, 30 }, root_names_str, &root_selection, root_dropdown_active)) {
+                        root_dropdown_active = !root_dropdown_active;
+                    }
                 }
             } else if (current_mode == MODE_FRETBOARD) {
                 // Fretboard Explorer Logic
