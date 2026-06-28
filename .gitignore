@@ -1,0 +1,25 @@
+# Binaries
+*.exe
+*.dll
+*.o
+
+# Zips
+*.zip
+
+# Visual Studio / IDE
+.vscode/
+.vs/
+
+# Raylib Temp
+raylib_temp/
+raylib_src/
+raylib-5.0/
+
+# ONNX Runtime huge folders
+onnxruntime-win-x64-*/
+
+# MinGW Toolchain
+mingw64/
+
+# Generated config
+rockforge_config.ini
